@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model kategori {
+  ID            BigInt     @id @default(autoincrement())
+  nama_kategori String?    @db.VarChar(255)
+  template      template[]
+}
+
+model keranjang {
+  ID             BigInt           @id @default(autoincrement())
+  user_id        BigInt
+  created_at     DateTime?        @db.Timestamp(0)
+  updated_at     DateTime?        @db.Timestamp(0)
+  user           user             @relation(fields: [user_id], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_keranjang_user")
+  keranjang_item keranjang_item[]
+
+  @@index([user_id], map: "FK_keranjang_user")
+}
+
+model keranjang_item {
+  ID           BigInt    @id @default(autoincrement())
+  keranjang_id BigInt
+  template_id  BigInt
+  created_at   DateTime? @db.Timestamp(0)
+  updated_at   DateTime? @db.Timestamp(0)
+  keranjang    keranjang @relation(fields: [keranjang_id], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_keranjang_item_keranjang")
+  template     template  @relation(fields: [template_id], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_keranjang_item_template")
+
+  @@unique([keranjang_id, template_id], map: "UK_keranjang_item")
+  @@index([template_id], map: "FK_keranjang_item_template")
+}
+
+model template {
+  ID              BigInt           @id @default(autoincrement())
+  nama_template   String?          @db.VarChar(255)
+  slug            String?          @unique(map: "UK_template_slug") @db.VarChar(255)
+  deskripsi       String?          @db.Text
+  harga           Decimal?         @db.Decimal(10, 0)
+  upload_template String?          @db.VarChar(255)
+  preview_image   String?          @db.VarChar(255)
+  jumlah_slide    Int?
+  kategori_id     BigInt
+  keranjang_item  keranjang_item[]
+  kategori        kategori         @relation(fields: [kategori_id], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_template_kategori")
+  transaksi_item  transaksi_item[]
+
+  @@index([kategori_id], map: "FK_template_kategori")
+}
+
+model transaksi {
+  ID                BigInt                    @id @default(autoincrement())
+  user_id           BigInt
+  invoice_number    String?                   @unique(map: "UK_transaksi_invoice") @db.VarChar(255)
+  total_amount      Decimal?                  @db.Decimal(10, 0)
+  payment_status    transaksi_payment_status?
+  payment_reference String?                   @db.VarChar(255)
+  paid_at           DateTime?                 @db.Timestamp(0)
+  created_at        DateTime?                 @db.Timestamp(0)
+  updated_at        DateTime?                 @db.Timestamp(0)
+  user              user                      @relation(fields: [user_id], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_transaksi_user")
+  transaksi_item    transaksi_item[]
+
+  @@index([user_id], map: "FK_transaksi_user")
+}
+
+model user {
+  ID        BigInt       @id @default(autoincrement())
+  Nama      String?      @db.VarChar(40)
+  Email     String?      @unique(map: "UK_user_email") @db.VarChar(255)
+  No_hp     String?      @db.VarChar(40)
+  Password  String?      @db.VarChar(255)
+  role      user_role?
+  status    user_status?
+  keranjang keranjang[]
+  transaksi transaksi[]
+  sessions session[]
+}
+
+
+model transaksi_item {
+  ID           BigInt    @id @default(autoincrement())
+  transaksi_id BigInt
+  template_id  BigInt
+  harga        Decimal   @db.Decimal(10, 0)
+  template     template  @relation(fields: [template_id], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_transaksi_item_template")
+  transaksi    transaksi @relation(fields: [transaksi_id], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_transaksi_item_transaksi")
+
+  @@unique([transaksi_id, template_id], map: "UK_transaksi_item")
+  @@index([template_id], map: "FK_transaksi_item_template")
+}
+
+model session {
+  ID         String   @id @default(cuid())
+  user_id    BigInt
+  token_hash String   @unique @db.VarChar(255)
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  user user @relation(fields: [user_id], references: [ID], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("session")
+}
+
+
+enum transaksi_payment_status {
+  Berhasil
+  Gagal
+}
+
+enum user_role {
+  Admin
+  Pembeli
+}
+
+enum user_status {
+  Aktif
+  Nonaktif
+}
