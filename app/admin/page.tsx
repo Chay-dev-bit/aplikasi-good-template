@@ -148,7 +148,7 @@ export default function KelolaTemplatePage() {
                     <th className="px-6 py-4">Preview</th>
                     <th className="px-6 py-4">Deskripsi</th>
                     <th className="px-6 py-4">Kategori</th>
-                    <th className="px-6 py-4">Aksi</th>
+                    {/* <th className="px-6 py-4">Aksi</th> */}
                   </tr>
                 </thead>
 
@@ -208,9 +208,9 @@ export default function KelolaTemplatePage() {
                       <td className="px-6 py-5 font-medium">
                         {template.kategori}
                       </td>
-                      <td className="px-6 py-5 text-slate-400">
+                      {/* <td className="px-6 py-5 text-slate-400">
                         Belum tersedia
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
 

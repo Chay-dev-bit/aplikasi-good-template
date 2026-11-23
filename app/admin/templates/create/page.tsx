@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Kategori = {
   ID: string;
@@ -20,6 +21,9 @@ export default function CreateTemplatePage() {
 
   const [kategori, setKategori] = useState<Kategori[]>([]);
   const [loadingKategori, setLoadingKategori] = useState(true);
+
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     async function fetchKategori() {
@@ -52,27 +56,108 @@ export default function CreateTemplatePage() {
     );
   }
 
+
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!preview || !fileTemplate) {
-      alert("Gambar preview dan file PowerPoint wajib diisi.");
+    // Validasi form
+    if (!nama.trim() || !slug.trim() || !deskripsi.trim()) {
+      alert("Nama, slug, dan deskripsi wajib diisi.");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("nama_template", nama);
-    formData.append("slug", slug);
-    formData.append("deskripsi", deskripsi);
-    formData.append("kategori_id", kategoriId);
-    formData.append("harga", harga);
-    formData.append("jumlah_slide", jumlahSlide);
-    formData.append("preview", preview);
-    formData.append("upload_template", fileTemplate);
+    if (!kategoriId || !harga || !jumlahSlide) {
+      alert("Lengkapi kategori, harga, dan jumlah slide.");
+      return;
+    }
 
-    // API penyimpanan akan dibuat pada langkah berikutnya.
-    alert("Form siap. API penyimpanan belum dibuat.");
+    if (!preview || !fileTemplate) {
+      alert("Gambar preview dan file PowerPoint wajib diunggah.");
+      return;
+    }
+
+    if (saving) return;
+
+    try {
+      setSaving(true);
+
+      // Siapkan data multipart
+      const formData = new FormData();
+
+      formData.append("nama_template", nama.trim());
+      formData.append("slug", slug.trim());
+      formData.append("deskripsi", deskripsi.trim());
+      formData.append("kategori_id", kategoriId);
+      formData.append("harga", harga);
+      formData.append("jumlah_slide", jumlahSlide);
+      formData.append("preview", preview);
+      formData.append("upload_template", fileTemplate);
+
+      // Kirim ke API
+      const response = await fetch("/api/admin/templates/create", {
+        method: "POST",
+        body: formData,
+      });
+
+      // Baca respons sebagai teks dahulu
+      const responseText = await response.text();
+
+      console.log("Status API:", response.status);
+      console.log("Respons API:", responseText);
+
+      // Pastikan server mengirim respons
+      if (!responseText.trim()) {
+        throw new Error(
+          `Server mengirim respons kosong (HTTP ${response.status}). Periksa terminal Next.js.`
+        );
+      }
+
+      // Konversi respons ke JSON
+      let result: {
+        success?: boolean;
+        message?: string;
+        data?: {
+          ID?: string;
+          nama_template?: string;
+        };
+      };
+
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        throw new Error(
+          `Respons API bukan JSON. HTTP ${response.status}. Periksa error pada server.`
+        );
+      }
+
+      // Tangani kegagalan API
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || `Gagal menyimpan template (HTTP ${response.status}).`
+        );
+      }
+
+      // Berhasil
+      alert(result.message || "Template berhasil disimpan!");
+
+      router.push("/admin/templates");
+      router.refresh();
+
+    } catch (error) {
+      console.error("Gagal menyimpan template:", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Terjadi kesalahan saat menyimpan template."
+      );
+    } finally {
+      setSaving(false);
+    }
   }
+
+
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 text-slate-800 md:p-10">
@@ -245,9 +330,10 @@ export default function CreateTemplatePage() {
 
             <button
               type="submit"
-              className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+              disabled={saving}
+              className="cursor-pointer rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Simpan Template
+              {saving ? "Menyimpan Template..." : "Simpan Template"}
             </button>
           </div>
         </form>
