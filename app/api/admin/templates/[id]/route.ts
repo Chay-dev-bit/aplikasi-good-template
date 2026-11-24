@@ -83,7 +83,7 @@ export async function GET(
         console.error("Gagal mengambil detail template:", error);
 
         return NextResponse.json(
-            { success: false, message: "Gagal mengambil detail template." },
+            { success: false, message: "Terjadi kesalahan saat mengambil detail template." },
             { status: 500 }
         );
     }
